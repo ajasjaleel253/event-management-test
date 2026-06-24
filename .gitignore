@@ -1,0 +1,7 @@
+# Ignore authentication and config files
+auth.js
+config.json
+secret-keys.txt
+
+# Ignore entire folders (like node_modules)
+node_modules/
