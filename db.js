@@ -1,16 +1,3 @@
-// ============================================================
-// db.js — Firebase Firestore database layer
-// ============================================================
-// HOW TO SET UP (one-time, 5 minutes):
-//   1. Go to https://console.firebase.google.com
-//   2. Create a new project → Add a web app → Copy config below
-//   3. In Firestore → "Create database" → Start in test mode
-//   4. In Authentication → Sign-in method → Enable Email/Password
-//   5. Create admin user:  admin@artsfest.com / yourpassword
-//   6. Create user accounts: user@school.com / theirpassword
-//   7. Replace the firebaseConfig object below with your own
-// ============================================================
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 import {
