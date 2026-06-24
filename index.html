@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArtsFest — Management Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════
+     LOADING SCREEN (shown until Firebase auth resolves)
+════════════════════════════════════════════════════ -->
+<div id="app-loading">
+  <div class="load-logo"><i class="fa-solid fa-masks-theater"></i></div>
+  <i class="fa-solid fa-spinner spin" style="color:var(--green-500);font-size:1.2rem;"></i>
+  <p>Loading ArtsFest…</p>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     LOGIN PAGE
+════════════════════════════════════════════════════ -->
+<section id="login-page" style="display:none;">
+  <!-- Decorative geometry (CSS-only, no images) -->
+  <div class="login-geo login-geo-1"></div>
+  <div class="login-geo login-geo-2"></div>
+  <div class="login-geo login-geo-3"></div>
+  <div class="login-geo login-geo-4"></div>
+  <div class="login-geo login-geo-5"></div>
+
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="logo-icon"><i class="fa-solid fa-masks-theater"></i></div>
+      <h1>ArtsFest</h1>
+      <p>Management Portal — Sign in to continue</p>
+    </div>
+
+    <div id="login-error" class="login-error">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span>Incorrect email or password. Please try again.</span>
+    </div>
+
+    <form class="login-form" id="loginForm" novalidate>
+      <div class="form-group">
+        <label for="uname">Email address</label>
+        <input type="email" id="uname" class="form-control" placeholder="you@school.com" autocomplete="username">
+        <span class="field-error" id="uname-err">Email is required.</span>
+      </div>
+      <div class="form-group">
+        <label for="upass">Password</label>
+        <div class="input-pw">
+          <input type="password" id="upass" class="form-control" placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="toggle-pw" id="togglePw" tabindex="-1" aria-label="Show password">
+            <i class="fa-regular fa-eye" id="togglePwIcon"></i>
+          </button>
+        </div>
+        <span class="field-error" id="upass-err">Password is required.</span>
+      </div>
+      <button type="submit" class="btn btn-primary login-submit" id="loginBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> Sign In
+      </button>
+    </form>
+
+    <p class="login-hint" style="margin-top:20px;line-height:1.7;">
+      Your account is created by the event administrator.<br>
+      Contact your admin if you need access.
+    </p>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="dashboard-page" style="display:none;">
+  <div id="sidebar-overlay"></div>
+  <div class="dash-layout">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon"><i class="fa-solid fa-masks-theater"></i></div>
+        <div>
+          <div class="brand-text">ArtsFest</div>
+          <div class="brand-sub">Event Management</div>
+        </div>
+      </div>
+
+      <!-- Role badge (populated by JS) -->
+      <div id="sidebar-role-badge" class="sidebar-role-badge admin">
+        <i class="fa-solid fa-shield-halved"></i> Admin
+      </div>
+
+      <!-- Sync indicator -->
+      <div style="padding:8px 16px 0;display:flex;align-items:center;gap:6px;font-size:0.72rem;color:var(--slate-400);">
+        <span class="sync-dot" id="sync-dot"></span> Live sync active
+      </div>
+
+      <nav>
+        <p class="sidebar-section-label">Overview</p>
+        <button class="nav-link active" data-view="view-dashboard">
+          <i class="fa-solid fa-chart-pie"></i> Dashboard
+        </button>
+
+        <p class="sidebar-section-label">Event Management</p>
+        <button class="nav-link" data-view="view-programs">
+          <i class="fa-solid fa-clipboard-list"></i> Programs
+          <span class="nav-count" id="count-programs">0</span>
+        </button>
+        <button class="nav-link" data-view="view-teams">
+          <i class="fa-solid fa-flag"></i> Teams
+          <span class="nav-count" id="count-teams">0</span>
+        </button>
+        <button class="nav-link" data-view="view-participants">
+          <i class="fa-solid fa-user-check"></i> Participants
+          <span class="nav-count" id="count-participants">0</span>
+        </button>
+        <button class="nav-link" data-view="view-results">
+          <i class="fa-solid fa-trophy"></i> Results
+        </button>
+        <button class="nav-link" data-view="view-leaderboard">
+          <i class="fa-solid fa-ranking-star"></i> Leaderboard
+        </button>
+
+        <p class="sidebar-section-label">Administration</p>
+        <!-- data-admin hides this from users via applyRoleGating() -->
+        <button class="nav-link" data-view="view-settings" data-admin>
+          <i class="fa-solid fa-gear"></i> Settings
+        </button>
+        <button class="nav-link danger" id="logoutBtn">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+        </button>
+      </nav>
+    </aside>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main class="dash-main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="btn-icon" id="mobile-menu-btn" aria-label="Open menu">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="topbar-right">
+          <div class="flex items-center gap-3">
+            <div style="text-align:right;">
+              <div style="font-size:0.82rem;font-weight:600;" id="topbar-username">—</div>
+              <div style="font-size:0.72rem;color:var(--slate-500);" id="topbar-role-label">Loading…</div>
+            </div>
+            <div class="avatar" id="topbar-avatar">—</div>
+          </div>
+        </div>
+      </header>
+
+      <div class="dash-body">
+
+        <!-- ── DASHBOARD OVERVIEW ── -->
+        <section class="section-view active" id="view-dashboard">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon-wrap green"><i class="fa-solid fa-users"></i></div>
+              <div><div class="stat-num" id="stat-participants">0</div><div class="stat-lbl">Participants</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-wrap amber"><i class="fa-solid fa-flag"></i></div>
+              <div><div class="stat-num" id="stat-teams">0</div><div class="stat-lbl">Teams</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-wrap blue"><i class="fa-solid fa-layer-group"></i></div>
+              <div><div class="stat-num" id="stat-programs">0</div><div class="stat-lbl">Programs</div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-wrap red"><i class="fa-solid fa-star"></i></div>
+              <div><div class="stat-num" id="stat-results">0</div><div class="stat-lbl">Results Entered</div></div>
+            </div>
+          </div>
+          <div class="dash-grid">
+            <div class="card">
+              <div class="card-header"><h3><i class="fa-solid fa-bolt" style="color:var(--amber-600);font-size:0.85rem;margin-right:6px;"></i>Recent Activity</h3></div>
+              <div class="card-body" id="activity-feed"><p class="text-muted" style="font-size:0.82rem;">No activity yet.</p></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3><i class="fa-solid fa-ranking-star" style="color:var(--green-700);font-size:0.85rem;margin-right:6px;"></i>Top Teams</h3></div>
+              <div class="card-body" id="mini-leaderboard"><p class="text-muted" style="font-size:0.82rem;">Enter results to see standings.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── PROGRAMS ── -->
+        <section class="section-view" id="view-programs">
+          <div class="section-header">
+            <div>
+              <h2>Program Catalog</h2>
+              <p class="text-muted">All competing events and their details.</p>
+            </div>
+            <!-- Only visible to admins (data-admin attr + JS gating) -->
+            <button class="btn btn-primary" id="btn-add-program" data-admin>
+              <i class="fa-solid fa-plus"></i> Add Program
+            </button>
+          </div>
+          <!-- User notice -->
+          <div class="info-banner" id="prog-user-notice" style="display:none;">
+            <i class="fa-solid fa-circle-info"></i>
+            Programs are managed by the event administrator. You can view them here.
+          </div>
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="prog-search" placeholder="Search programs…">
+              </div>
+              <div class="filter-row">
+                <select id="prog-filter-cat"><option value="">All Categories</option></select>
+                <select id="prog-filter-type">
+                  <option value="">All Types</option>
+                  <option>Individual</option>
+                  <option>Group</option>
+                  <option>Team</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr>
+                  <th>#</th><th>Program Name</th><th>Category</th>
+                  <th>Type</th><th>Stage / Venue</th><th>Time</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="programs-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── TEAMS ── -->
+        <section class="section-view" id="view-teams">
+          <div class="section-header">
+            <div>
+              <h2>Teams</h2>
+              <p class="text-muted">Competing groups and their live point totals.</p>
+            </div>
+            <button class="btn btn-primary" id="btn-add-team">
+              <i class="fa-solid fa-plus"></i> Register Team
+            </button>
+          </div>
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="team-search" placeholder="Search teams…">
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Rank</th><th>Team Name</th><th>Captain</th>
+                  <th>Members</th><th>Points</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="teams-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── PARTICIPANTS ── -->
+        <section class="section-view" id="view-participants">
+          <div class="section-header">
+            <div>
+              <h2>Participants</h2>
+              <p class="text-muted">Register individuals and assign them to programs.</p>
+            </div>
+            <button class="btn btn-primary" id="btn-add-participant">
+              <i class="fa-solid fa-user-plus"></i> Add Participant
+            </button>
+          </div>
+          <div class="card">
+            <div class="table-toolbar">
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="part-search" placeholder="Search participants…">
+              </div>
+              <div class="filter-row">
+                <select id="part-filter-team"><option value="">All Teams</option></select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr>
+                  <th>#</th><th>Name</th><th>Team</th>
+                  <th>Grade</th><th>Enrolled Programs</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="participants-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── RESULTS ── -->
+        <section class="section-view" id="view-results">
+          <div class="section-header">
+            <div>
+              <h2>Results &amp; Scoring</h2>
+              <p class="text-muted">
+                <span id="results-subtitle-admin" data-admin>Enter scores for completed programs.</span>
+                <span id="results-subtitle-user" style="display:none;">Live results entered by the admin.</span>
+              </p>
+            </div>
+          </div>
+          <!-- User info banner (shown to users) -->
+          <div class="info-banner" id="results-user-notice" style="display:none;">
+            <i class="fa-solid fa-circle-info"></i>
+            Results are published by the event administrator. You can view them here in real time.
+          </div>
+          <div class="card" id="results-admin-bar">
+            <div class="table-toolbar">
+              <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="result-search" placeholder="Search programs…">
+              </div>
+              <div class="filter-row">
+                <select id="result-filter-cat"><option value="">All Categories</option></select>
+                <select id="result-filter-status">
+                  <option value="">All Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="entered">Scored</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Program</th><th>Category</th>
+                  <th>1st Place</th><th>2nd Place</th><th>3rd Place</th>
+                  <th>Status</th><th>Actions</th>
+                </tr></thead>
+                <tbody id="results-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── LEADERBOARD ── -->
+        <section class="section-view" id="view-leaderboard">
+          <div class="section-header">
+            <div>
+              <h2>Leaderboard</h2>
+              <p class="text-muted">Live standings — updates automatically across all devices.</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--slate-500);">
+              <span class="sync-dot"></span> Live
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr>
+                  <th>Rank</th><th>Team</th><th>Gold</th><th>Silver</th><th>Bronze</th>
+                  <th>Total Points</th><th>Relative</th>
+                </tr></thead>
+                <tbody id="leaderboard-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SETTINGS (Admin only) ── -->
+        <section class="section-view" id="view-settings" data-admin>
+          <div class="section-header">
+            <div><h2>Settings</h2><p class="text-muted">Configure the event and your account.</p></div>
+          </div>
+
+          <p class="settings-section-label">Event Configuration</p>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div><div class="settings-label">Event Name</div><div class="settings-sub">Shown across the portal.</div></div>
+              <input type="text" class="form-control" id="setting-event-name" style="max-width:260px;">
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Points — 1st / 2nd / 3rd</div><div class="settings-sub">Points awarded per placement.</div></div>
+              <div class="flex gap-2">
+                <input type="number" class="form-control" id="setting-pts-1" style="width:60px;text-align:center;" min="1">
+                <input type="number" class="form-control" id="setting-pts-2" style="width:60px;text-align:center;" min="1">
+                <input type="number" class="form-control" id="setting-pts-3" style="width:60px;text-align:center;" min="1">
+              </div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Registration Open</div><div class="settings-sub">Allow new participant registrations.</div></div>
+              <label class="toggle"><input type="checkbox" id="setting-reg-open"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Results Public</div><div class="settings-sub">Publish results to a public-facing page.</div></div>
+              <label class="toggle"><input type="checkbox" id="setting-results-public"><span class="toggle-track"><span class="toggle-thumb"></span></span></label>
+            </div>
+          </div>
+
+          <p class="settings-section-label" style="margin-top:24px;">Account</p>
+          <div class="settings-card">
+            <div class="settings-row">
+              <div><div class="settings-label">Change Password</div><div class="settings-sub">Update your sign-in password.</div></div>
+              <button class="btn btn-secondary btn-sm" id="btn-change-pw">Change Password</button>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Export Data</div><div class="settings-sub">Download all event data as JSON.</div></div>
+              <button class="btn btn-secondary btn-sm" id="btn-export"><i class="fa-solid fa-download"></i> Export JSON</button>
+            </div>
+          </div>
+
+          <div style="text-align:right;margin-top:16px;">
+            <button class="btn btn-primary" id="btn-save-settings">
+              <i class="fa-solid fa-floppy-disk"></i> Save Settings
+            </button>
+          </div>
+        </section>
+
+      </div><!-- /.dash-body -->
+    </main>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════ -->
+
+<!-- Add / Edit Program -->
+<div class="modal-overlay" id="modal-program">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-program-title">Add Program</h3>
+      <button class="modal-close" data-close="modal-program"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="form-program" novalidate>
+        <input type="hidden" id="prog-id">
+        <datalist id="cat-suggestions"></datalist>
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label>Program Name *</label>
+            <input type="text" class="form-control" id="prog-name" placeholder="e.g. Duffmuttu" maxlength="80">
+            <span class="field-error" id="prog-name-err">Name is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Category *</label>
+            <input type="text" class="form-control" id="prog-cat" placeholder="e.g. General Arts" list="cat-suggestions">
+            <span class="field-error" id="prog-cat-err">Category is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Type *</label>
+            <select class="form-control" id="prog-type">
+              <option value="">Select type…</option>
+              <option>Individual</option><option>Group</option><option>Team</option>
+            </select>
+            <span class="field-error" id="prog-type-err">Type is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Stage / Venue</label>
+            <input type="text" class="form-control" id="prog-stage" placeholder="e.g. Main Stage">
+          </div>
+          <div class="form-group">
+            <label>Scheduled Time</label>
+            <input type="time" class="form-control" id="prog-time">
+          </div>
+          <div class="form-group span-2">
+            <label>Max Participants per Team</label>
+            <input type="number" class="form-control" id="prog-maxpart" min="1" placeholder="e.g. 3">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="modal-program">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-program"><i class="fa-solid fa-floppy-disk"></i> Save Program</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Team -->
+<div class="modal-overlay" id="modal-team">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-team-title">Register Team</h3>
+      <button class="modal-close" data-close="modal-team"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="form-team" novalidate>
+        <input type="hidden" id="team-id">
+        <div class="form-grid">
+          <div class="form-group span-2">
+            <label>Team Name *</label>
+            <input type="text" class="form-control" id="team-name" placeholder="e.g. Emerald Eagles" maxlength="60">
+            <span class="field-error" id="team-name-err">Name is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Team Captain *</label>
+            <input type="text" class="form-control" id="team-captain" placeholder="Captain's full name">
+            <span class="field-error" id="team-captain-err">Captain name is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Color / Theme</label>
+            <input type="text" class="form-control" id="team-color" placeholder="e.g. Green">
+          </div>
+          <div class="form-group span-2">
+            <label>Notes</label>
+            <textarea class="form-control" id="team-notes" rows="2" placeholder="Any additional info…" style="resize:vertical;"></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="modal-team">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-team"><i class="fa-solid fa-floppy-disk"></i> Save Team</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit Participant -->
+<div class="modal-overlay" id="modal-participant">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3 id="modal-participant-title">Add Participant</h3>
+      <button class="modal-close" data-close="modal-participant"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="form-participant" novalidate>
+        <input type="hidden" id="part-id">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" class="form-control" id="part-name" placeholder="Participant's full name">
+            <span class="field-error" id="part-name-err">Name is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Team *</label>
+            <select class="form-control" id="part-team"><option value="">Select team…</option></select>
+            <span class="field-error" id="part-team-err">Team is required.</span>
+          </div>
+          <div class="form-group">
+            <label>Grade / Class</label>
+            <input type="text" class="form-control" id="part-grade" placeholder="e.g. 10A">
+          </div>
+          <div class="form-group">
+            <label>Contact / Phone</label>
+            <input type="text" class="form-control" id="part-contact" placeholder="Optional">
+          </div>
+          <div class="form-group span-2">
+            <label>Enroll in Programs</label>
+            <div id="part-programs-list"
+              style="max-height:180px;overflow-y:auto;border:1px solid var(--slate-200);border-radius:var(--radius);padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <p class="text-muted" style="grid-column:span 2;">Loading programs…</p>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="modal-participant">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-participant"><i class="fa-solid fa-floppy-disk"></i> Save Participant</button>
+    </div>
+  </div>
+</div>
+
+<!-- Enter / Edit Result (Admin only) -->
+<div class="modal-overlay" id="modal-result">
+  <div class="modal wide">
+    <div class="modal-header">
+      <h3 id="modal-result-title">Enter Result</h3>
+      <button class="modal-close" data-close="modal-result"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-result-prog-info"
+        style="background:var(--slate-50);border-radius:var(--radius);padding:14px;margin-bottom:20px;font-size:0.85rem;color:var(--slate-600);"></div>
+      <form id="form-result" novalidate>
+        <input type="hidden" id="result-prog-id">
+        <div class="form-grid cols-3">
+          <div class="form-group">
+            <label><span style="background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:99px;font-size:0.72rem;font-weight:600;">🥇 1st Place</span></label>
+            <select class="form-control" id="result-1st"><option value="">— None —</option></select>
+          </div>
+          <div class="form-group">
+            <label><span style="background:var(--slate-100);color:var(--slate-600);padding:3px 8px;border-radius:99px;font-size:0.72rem;font-weight:600;">🥈 2nd Place</span></label>
+            <select class="form-control" id="result-2nd"><option value="">— None —</option></select>
+          </div>
+          <div class="form-group">
+            <label><span style="background:#fce7d6;color:#9a3412;padding:3px 8px;border-radius:99px;font-size:0.72rem;font-weight:600;">🥉 3rd Place</span></label>
+            <select class="form-control" id="result-3rd"><option value="">— None —</option></select>
+          </div>
+        </div>
+        <span class="field-error" id="result-dup-err" style="margin-top:8px;"></span>
+        <div id="points-preview"
+          style="margin-top:16px;background:var(--green-50);border:1px solid var(--green-100);border-radius:var(--radius);padding:12px;font-size:0.82rem;display:none;">
+          <strong style="font-size:0.8rem;">Points that will be awarded:</strong>
+          <div id="points-preview-content" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="modal-result">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-result"><i class="fa-solid fa-floppy-disk"></i> Publish Result</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Password -->
+<div class="modal-overlay" id="modal-change-pw">
+  <div class="modal narrow">
+    <div class="modal-header">
+      <h3>Change Password</h3>
+      <button class="modal-close" data-close="modal-change-pw"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="form-change-pw" novalidate>
+        <div class="form-grid cols-1">
+          <div class="form-group">
+            <label>Current Password</label>
+            <input type="password" class="form-control" id="pw-current" placeholder="Current password">
+            <span class="field-error" id="pw-current-err">Incorrect current password.</span>
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="password" class="form-control" id="pw-new" placeholder="At least 6 characters">
+            <span class="field-error" id="pw-new-err">Must be at least 6 characters.</span>
+          </div>
+          <div class="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" class="form-control" id="pw-confirm" placeholder="Repeat new password">
+            <span class="field-error" id="pw-confirm-err">Passwords do not match.</span>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close="modal-change-pw">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-pw"><i class="fa-solid fa-lock"></i> Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog -->
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal narrow">
+    <div class="modal-body" style="text-align:center;padding:32px 28px;">
+      <div class="confirm-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <h3 id="confirm-title" style="margin-bottom:8px;font-size:1rem;">Confirm</h3>
+      <p id="confirm-msg" style="color:var(--slate-600);font-size:0.85rem;margin-bottom:24px;">This cannot be undone.</p>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+        <button class="btn btn-danger" id="confirm-ok">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════
+     SCRIPTS — ES Module entry point
+════════════════════════════════════════════════════ -->
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
